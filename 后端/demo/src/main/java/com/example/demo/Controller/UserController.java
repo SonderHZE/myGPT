@@ -1,79 +1,83 @@
 package com.example.demo.Controller;
 
-import com.example.demo.Pojo.AliSession;
 import com.example.demo.Pojo.Result;
 import com.example.demo.Pojo.User;
 import com.example.demo.Service.Impl.UserServiceImpl;
+import com.example.demo.Utils.CookieUtil;
 import com.example.demo.Utils.JWTUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.http.ResponseCookie;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController("/user")
 public class UserController {
     @Autowired
     UserServiceImpl userService;
 
+    //用户注册
     @PostMapping("/user/register")
-    public Result register(@RequestBody User user) {
-        user = userService.userRegister(user);
-
-        if(user == null) {
-            return Result.error("用户已经存在");
+    public Result userRegister(@RequestBody User user) {
+        //1. 检验数据是否为空
+        if (user == null || user.getUserName() == null || user.getPassword() == null || user.getMobilePhone() == null) {
+            return Result.error("数据不能为空");
         }
-        return Result.success(user);
+
+        //2. 传递给service层
+        Result result = userService.userRegister(user);
+        return result;
     }
 
+    //用户登录
     @PostMapping("/user/login")
-    public Result login(@RequestBody User user, HttpServletRequest request, HttpServletResponse response) {
-        user = userService.userLogin(user);
+    public Result userLogin(@RequestBody User user,
+                            HttpServletResponse response, HttpServletRequest request) {
+        Result result = userService.userLogin(user.getUserName(), user.getPassword());
 
-        if(user== null) {
-            return Result.error("用户不存在");
+        // 如果登录失败，返回错误信息
+        if (result.getStatus() == "error") return result;
+
+        // 根据信息生成token,并且允许cookie跨域
+        user = (User) result.getData();
+        JWTUtil.generateToken(user);
+        ResponseCookie cookie = ResponseCookie.from("token", JWTUtil.generateToken(user))
+                .httpOnly(true)
+                .sameSite("None")
+                .secure(true)
+                .path("/")
+                .build();
+
+        if(request.getSession(false) == null){
+            HttpSession session = request.getSession();
+            session.setMaxInactiveInterval(60*30);
+
+            ResponseCookie JSESSIONID = ResponseCookie.from("JSESSIONID", session.getId())
+                    .httpOnly(true)
+                    .sameSite("None")
+                    .secure(true)
+                    .path("/")
+                    .build();
+            response.addHeader("Set-Cookie", JSESSIONID.toString());
         }
-        if("密码不正确".equals(user.getUsername())) {
-            return Result.error("密码不正确");
-        }
 
-        // 将JWT令牌放入cookie
-        String token = user.getToken();
-        response.setHeader("Set-Cookie", "token=" + token + "; SameSite=None; Secure;path=/");
+        response.addHeader("Set-Cookie", cookie.toString());
 
-        // 将用户信息放入session
-        request.getSession().setAttribute("userID", user.getUserID());
-        return Result.success(user);
+
+
+        return result;
     }
 
-    @GetMapping("/user/sessionList")
-    public Result sessionList(@RequestParam Integer userID) {
-        if(userID == null) {
-            return Result.error("用户未登录");
-        }
-        List<AliSession> sessionList = userService.getSessionList(userID);
+    //获取所有聊天记录
+    @GetMapping("/user/getAllChatList")
+    public Result getAllChatList(HttpServletRequest request) {
+        String token = CookieUtil.getCookieValue(request, "token");
+        String userID = JWTUtil.parseToken(token, "userID");
 
-        return Result.success(sessionList);
-    }
-
-    @PostMapping("/user/renameChat")
-    public Result renameChat(@RequestBody AliSession aliSession){
-        Integer row = userService.renameChat(aliSession.getSessionID(), aliSession.getTitle(), aliSession.getUserID());
-        if(row == 1) {
-            return Result.success("修改成功");
-        }else{
-            return Result.error("修改失败");
-        }
-    }
-
-    @PostMapping("/user/deleteChat")
-    public Result deleteChat(@RequestBody AliSession aliSession){
-        Integer row = userService.deleteChat(aliSession.getSessionID(), aliSession.getUserID());
-        if(row == 1) {
-            return Result.success("删除成功");
-        }else{
-            return Result.error("删除失败");
-        }
+        return userService.getAllChatList(userID);
     }
 }

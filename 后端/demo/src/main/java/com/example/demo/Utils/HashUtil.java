@@ -38,12 +38,6 @@ public class HashUtil {
         return commonHash(str + salt);
     }
 
-    /**
-     * 验证hash, 通过对比hash值
-     * @param str
-     * @param hash
-     * @return
-     */
     public static boolean verifyHash(String str, String hash) {
         return saltHash(str).equals(hash);
     }
@@ -54,4 +48,5 @@ public class HashUtil {
         System.out.println(saltHash("wangwu"));
         System.out.println(verifyHash("zhangsan", "8bb4833c0c62c6180d86674f6db9b59c"));
     }
+
 }

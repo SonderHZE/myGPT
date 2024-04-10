@@ -1,20 +1,17 @@
 package com.example.demo.Pojo;
 
 public class User {
-    private Integer userID;
-    private String username;
-    private String password;
-    private String email;
+   private Integer userID;
+   private String userName;
+   private String password;
+   private String mobilePhone;
 
-    // 辅助属性
-    private String token;
-
-    public void setToken(String token) {
-        this.token = token;
+    public String getMobilePhone() {
+        return mobilePhone;
     }
 
-    public String getToken() {
-        return token;
+    public void setMobilePhone(String mobilePhone) {
+        this.mobilePhone = mobilePhone;
     }
 
     public Integer getUserID() {
@@ -25,12 +22,12 @@ public class User {
         this.userID = userID;
     }
 
-    public String getUsername() {
-        return username;
+    public String getUserName() {
+        return userName;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public String getPassword() {
@@ -40,13 +37,4 @@ public class User {
     public void setPassword(String password) {
         this.password = password;
     }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
 }
