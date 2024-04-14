@@ -1,10 +1,6 @@
 package com.example.demo.Mapper;
 
-import com.example.demo.Pojo.Chat;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface ChatinfoMapper {
@@ -17,4 +13,7 @@ public interface ChatinfoMapper {
 
     @Insert("INSERT INTO chatinfo(chatID, messageList) VALUES(#{chatID}, #{messageList})")
     void insertMessageList(Integer chatID, String messageList);
+
+    @Delete("delete from chatinfo where chatID = #{chatID}")
+    Integer deleteChatinfo(Integer chatID);
 }

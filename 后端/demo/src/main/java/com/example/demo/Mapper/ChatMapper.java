@@ -3,8 +3,6 @@ package com.example.demo.Mapper;
 import com.example.demo.Pojo.Chat;
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.mapping.StatementType;
-import org.apache.ibatis.type.JdbcType;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -23,4 +21,10 @@ public interface ChatMapper {
 
     @Update("update chats set time = #{time} where chatID = #{chatID}")
     void updateChatTime(Integer chatID, Timestamp time);
+
+    @Update("update chats set chatTitle = #{chatTitle} where chatID = #{chatID} and userID = #{userID}")
+    Integer renameChat(Integer chatID, String chatTitle, Integer userID);
+
+    @Delete("delete from chats where chatID = #{chatID} and userID = #{i}")
+    Integer deleteChat(Integer chatID, int i);
 }

@@ -1,5 +1,6 @@
 package com.example.demo.Controller;
 
+import com.example.demo.Pojo.Chat;
 import com.example.demo.Pojo.Result;
 import com.example.demo.Pojo.User;
 import com.example.demo.Service.Impl.UserServiceImpl;
@@ -10,10 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseCookie;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController("/user")
 public class UserController {
@@ -79,5 +77,39 @@ public class UserController {
         String userID = JWTUtil.parseToken(token, "userID");
 
         return userService.getAllChatList(userID);
+    }
+
+    //用户登出
+    @GetMapping("/user/logout")
+    public Result userLogout(HttpServletRequest request, HttpServletResponse response){
+        CookieUtil.deleteCookie(request, response, "token");
+        return Result.success("登出成功");
+    }
+
+    //重命名聊天记录
+    @PostMapping("/user/renameChat")
+    public Result renameChat(@RequestBody Chat chat, HttpServletRequest request){
+        String token = CookieUtil.getCookieValue(request, "token");
+        if(token == null) return Result.error("请先登录");
+        String UserID = JWTUtil.parseToken(token, "userID");
+
+        Integer chatID = chat.getChatID();
+        String chatTitle = chat.getChatTitle();
+
+        return userService.renameChat(chatID, chatTitle, Integer.parseInt(UserID));
+
+    }
+
+    //删除聊天记录
+    @PostMapping("/user/deleteChat")
+    public Result deleteChat(@RequestBody Chat chat, HttpServletRequest request){
+        String token = CookieUtil.getCookieValue(request, "token");
+        if(token == null) return Result.error("请先登录");
+        String UserID = JWTUtil.parseToken(token, "userID");
+
+        Integer chatID = chat.getChatID();
+
+        return userService.deleteChat(chatID, Integer.parseInt(UserID));
+
     }
 }

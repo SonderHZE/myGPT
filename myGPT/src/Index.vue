@@ -87,7 +87,7 @@ function resetPage() {
     console.log(chatID.value);
 }
 
-function sendMessage(inputValue,chatID) {
+function sendMessage(inputValue, chatID) {
     ifChat.value = true;
     // 向消息列表中添加新消息，标题为inputValue，时间为当前时间
     // 消息列表中没有该对话，则添加该对话
@@ -152,17 +152,19 @@ function renameChat(ID) {
     }).then(({ value }) => {
         // 向后端发送重命名请求
         axios.post('http://127.0.0.1:8080/user/renameChat', {
-            cahtID: ID,
-            title: value,
-            userID: localStorage.getItem('userID')
-        }).then(res => {
-            if (res.data.status === 'success') {
-                // 重命名成功后，更新chatList
-                gettAllChatList();
-            }
-        }).catch(err => {
-            console.log(err);
-        });
+            chatID: ID,
+            chatTitle: value,
+        },
+            {
+                withCredentials: true,
+            }).then(res => {
+                if (res.data.status === 'success') {
+                    // 重命名成功后，更新chatList
+                    gettAllChatList();
+                }
+            }).catch(err => {
+                console.log(err);
+            });
     }).catch(() => {
         // 用户取消重命名
     });
@@ -178,16 +180,20 @@ function deleteChat(ID) {
     }).then(() => {
         // 向后端发送删除请求
         axios.post('http://127.0.0.1:8080/user/deleteChat', {
-            cahtID: ID,
-            userID: localStorage.getItem('userID')
-        }).then(res => {
-            if (res.data.status === 'success') {
-                // 删除成功后，更新chatList
-                gettAllChatList();
-            }
-        }).catch(err => {
-            console.log(err);
-        });
+            chatID: ID,
+        },
+            {
+                withCredentials: true,
+            }).then(res => {
+                if (res.data.status === 'success') {
+                    // 删除成功后，更新chatList
+                    gettAllChatList();
+                }else{
+                    console.log(res.data.message);
+                }
+            }).catch(err => {
+                console.log(err);
+            });
     }).catch(() => {
         // 用户取消删除
     });
@@ -229,7 +235,8 @@ onMounted(() => {
                                 <el-dropdown-item v-if="ifLogin === true">个人中心</el-dropdown-item>
                                 <el-dropdown-item v-if="ifLogin === true">退出登录</el-dropdown-item>
                                 <el-dropdown-item v-if="ifLogin === false" @click="login = true">登录</el-dropdown-item>
-                                <el-dropdown-item v-if="ifLogin === false" @click="register = true">注册</el-dropdown-item>
+                                <el-dropdown-item v-if="ifLogin === false"
+                                    @click="register = true">注册</el-dropdown-item>
                             </template>
                         </el-dropdown>
                     </el-col>
@@ -284,8 +291,8 @@ onMounted(() => {
                                     <el-icon>
                                         <ChatLineRound />
                                     </el-icon>
-                                    <el-text style="margin-left:6px;margin-right:6px; user-select: none;"
-                                        truncated>{{ item.chatTitle }}</el-text>
+                                    <el-text style="margin-left:6px;margin-right:6px; user-select: none;" truncated>{{
+                                        item.chatTitle }}</el-text>
                                     <el-dropdown trigger="click">
                                         <el-button type="text">
                                             <el-icon>
@@ -294,8 +301,7 @@ onMounted(() => {
                                         </el-button>
                                         <template #dropdown>
                                             <el-dropdown-menu>
-                                                <el-dropdown-item
-                                                    @click="deleteChat(item.chatID)">删除</el-dropdown-item>
+                                                <el-dropdown-item @click="deleteChat(item.chatID)">删除</el-dropdown-item>
                                                 <el-dropdown-item
                                                     @click="renameChat(item.chatID)">重命名</el-dropdown-item>
                                             </el-dropdown-menu>
@@ -308,12 +314,13 @@ onMounted(() => {
 
                             <div id="seven-day-item">
                                 <span class="date-title">7天内</span>
-                                <div class="chat-item" v-for="item in filterChatListSevenDay" :key="item.id">
+                                <div class="chat-item" v-for="item in filterChatListSevenDay" :key="item.id"
+                                    @click="readChat(item.chatID)">
                                     <el-icon>
                                         <ChatLineRound />
                                     </el-icon>
-                                    <el-text style="margin-left:6px;margin-right:6px; user-select: none;"
-                                        truncated>{{ item.chatTitle }}</el-text>
+                                    <el-text style="margin-left:6px;margin-right:6px; user-select: none;" truncated>{{
+                                        item.chatTitle }}</el-text>
                                     <el-dropdown trigger="click">
                                         <el-button type="text">
                                             <el-icon>
@@ -338,12 +345,13 @@ onMounted(() => {
 
                             <div id="thirty-day-item">
                                 <span class="date-title">30天内</span>
-                                <div class="chat-item" v-for="item in filterChatListThirtyDay" :key="item.id">
+                                <div class="chat-item" v-for="item in filterChatListThirtyDay" :key="item.id"
+                                    @click="readChat(item.chatID)">
                                     <el-icon>
                                         <ChatLineRound />
                                     </el-icon>
-                                    <el-text style="margin-left:6px;margin-right:6px; user-select: none;"
-                                        truncated>{{ item.chatTitle }}</el-text>
+                                    <el-text style="margin-left:6px;margin-right:6px; user-select: none;" truncated>{{
+                                        item.chatTitle }}</el-text>
                                     <el-dropdown trigger="click">
                                         <el-button type="text">
                                             <el-icon>
@@ -368,8 +376,8 @@ onMounted(() => {
                 </el-aside>
 
                 <el-main>
-                    <MainMessageVue :chatID="chatID" :ifChat="ifChat" :sessionInfo="sessionInfo"
-                        :isLogin="ifLogin" @send-message="sendMessage" @change-sessionID="changeSession" />
+                    <MainMessageVue :chatID="chatID" :ifChat="ifChat" :sessionInfo="sessionInfo" :isLogin="ifLogin"
+                        @send-message="sendMessage" @change-sessionID="changeSession" />
                 </el-main>
             </el-container>
         </el-container>

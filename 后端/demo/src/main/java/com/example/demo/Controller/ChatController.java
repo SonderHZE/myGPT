@@ -3,6 +3,7 @@ package com.example.demo.Controller;
 import com.example.demo.Pojo.Chat;
 import com.example.demo.Pojo.Result;
 import com.example.demo.Service.Impl.AliServiceImpl;
+import com.example.demo.Service.Impl.BaiduServiceImpl;
 import com.example.demo.Utils.CookieUtil;
 import com.example.demo.Utils.JWTUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,12 +23,14 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ChatController {
     @Autowired
     private AliServiceImpl aliServiceImpl;
+    @Autowired
+    private BaiduServiceImpl baiduServiceImpl;
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-    // 调用通义千问接口
-    @GetMapping("/aliChat")
+    // 调用Ai接口
+    @GetMapping("/aiChat")
     public SseEmitter handleGetRequest(@RequestParam String chatModel,
                                        @RequestParam Integer chatID,
                                        @RequestParam String inputValue,
@@ -52,29 +55,6 @@ public class ChatController {
         chat.get().setInputValue(inputValue);
         chat.get().setChatModel(chatModel);
 
-//        HttpSession session = request.getSession();
-//        session.setMaxInactiveInterval(60*30);
-//        String JSID = CookieUtil.getCookieValue(request, "JSESSIONID");
-//        if(JSID==null||!JSID.equals(session.getId())){
-//            ResponseCookie cookie = ResponseCookie.from("JSESSIONID", session.getId())
-//                    .httpOnly(true)
-//                    .sameSite("None")
-//                    .secure(true)
-//                    .path("/")
-//                    .build();
-//
-//
-//            response.addHeader("Set-Cookie", cookie.toString());
-//        }
-//
-//        //3. 从session中获取对话记录
-//        if(!chatID.equals(-1)){
-//            String key = "messageList"+chatID.toString();
-//            String value = (String) session.getAttribute(key);
-//            if(value!=null){
-//                chat.get().setMessageList(value);
-//            }
-//        }
 
         //3. 从redis中获取对话记录
         if(stringRedisTemplate.hasKey("messageList"+chatID)){
@@ -85,9 +65,14 @@ public class ChatController {
             stringRedisTemplate.expire("backupKey"+"messageList"+chatID, 60*30+20, TimeUnit.SECONDS);
         }
 
+
         Thread thread = new Thread(() -> {
             try {
-                chat.set(aliServiceImpl.aliChat(chat.get(), sseEmitter, userID));
+                if(chatModel.equals("通义千问")){
+                    chat.set(aliServiceImpl.aliChat(chat.get(), sseEmitter, userID));
+                }else{
+                    chat.set(baiduServiceImpl.baiduChat(chat.get(), sseEmitter, userID));
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -107,6 +92,7 @@ public class ChatController {
 
         return sseEmitter;
     }
+
 
     @GetMapping("/getChatInfo")
     public Result getChatInfo(@RequestParam Integer chatID, HttpServletRequest request){

@@ -9,11 +9,18 @@ import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.example.demo.Pojo.Chat;
 import io.reactivex.Flowable;
+import okhttp3.*;
+import okio.Buffer;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static com.example.demo.Service.Impl.BaiduServiceImpl.HTTP_CLIENT;
+import static com.example.demo.Service.Impl.BaiduServiceImpl.getAccessToken;
 
 public class ChatUtils {
     public static List<Message> createAliMessageList(String messageList) {
@@ -46,6 +53,20 @@ public class ChatUtils {
             }
         }
         return messages;
+    }
+
+    public static StringBuilder messageListToJson(List<Message> messages) {
+        StringBuilder json = new StringBuilder("{\"messages\": [");
+        for (Message message : messages) {
+            String role = message.getRole();
+            String content = message.getContent();
+            content = content.replace("\"", "“");
+            content = content.replace("\n", "");
+            json.append("{\"role\":\"").append(role).append("\",\"content\":\"").append(content).append("\"},");
+        }
+        json.deleteCharAt(json.length() - 1);
+        json.append("],\"stream\":true,\"disable_search\":false,\"enable_citation\":false}");
+        return json;
     }
 
     public static void aliStreamCall(Chat chat, SseEmitter sseEmitter) throws NoApiKeyException, InputRequiredException, IOException {
@@ -102,9 +123,94 @@ public class ChatUtils {
             sseEmitter.send("CHAT COMPLETED!");
             sseEmitter.send(chat.getChatID());
         } catch (IOException e) {
-            // handle exception
+            e.printStackTrace();
         } finally {
             sseEmitter.complete();
+        }
+    }
+
+    public static void baiduStreamCall(Chat chat, SseEmitter sseEmitter) throws IOException {
+        // 获得用户输入的问题
+        String inputValue = chat.getInputValue();
+        String messageList = chat.getMessageList();
+
+        // 如果messageList不为空，则将inputValue添加到messageList中
+        if (messageList != null) {
+            messageList += "user: " + inputValue + "\n";
+        } else {
+            messageList = "user: " + inputValue + "\n";
+        }
+
+        // 创建Json对象
+        StringBuilder json = ChatUtils.messageListToJson(ChatUtils.createAliMessageList(messageList));
+
+        // 向百度接口发送请求
+        String accessToken = getAccessToken();
+        final Boolean[] isEnd = {false};
+        MediaType mediaType = MediaType.parse("application/json");
+        Request request = new Request.Builder()
+                .url("https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions?access_token=" + accessToken)
+                .post(RequestBody.create(mediaType, json.toString()))
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        String finalMessageList = messageList;
+        HTTP_CLIENT.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                // 请求失败的处理
+                e.printStackTrace();
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    throw new IOException("Unexpected code " + response);
+                } else {
+                    try (ResponseBody responseBody = response.body()) {
+                        if (responseBody != null) {
+                            // 流式处理响应体
+                            responseBody.source().timeout().timeout(60, TimeUnit.SECONDS);
+                            Buffer buffer = new Buffer();
+                            StringBuilder content = new StringBuilder();
+
+                            // 实际流式处理逻辑可能涉及循环读取buffer部分内容，例如：
+                            while (true) {
+                                long read = responseBody.source().read(buffer, 8192);
+                                if (read == -1) {
+                                    break;
+                                }
+
+                                String all = buffer.readString(Charset.defaultCharset());
+                                int start = all.indexOf("result") + 9;
+                                int end = all.indexOf("need_clear_history") - 3;
+                                String result = all.substring(start, end);
+                                content.append(result);
+                                sseEmitter.send(result);
+
+                            }
+
+                            // 发送完成消息
+                            sseEmitter.send("CHAT COMPLETED!");
+                            sseEmitter.send(chat.getChatID());
+
+                            // 将对话记录存储到chat对象中
+                            chat.setMessageList(finalMessageList + "assistant: " + content + "\n");
+                            sseEmitter.complete();
+
+                            isEnd[0] = true;
+                        }
+                    }
+                }
+
+            }
+        });
+
+        while(!isEnd[0]){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.demo.Service.Impl;
 
 import com.example.demo.Mapper.ChatMapper;
+import com.example.demo.Mapper.ChatinfoMapper;
 import com.example.demo.Mapper.UserMapper;
 import com.example.demo.Pojo.Chat;
 import com.example.demo.Pojo.Result;
@@ -8,6 +9,7 @@ import com.example.demo.Pojo.User;
 import com.example.demo.Service.UserService;
 import com.example.demo.Utils.HashUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,10 @@ public class UserServiceImpl implements UserService {
     UserMapper userMapper;
     @Autowired
     ChatMapper chatMapper;
+    @Autowired
+    ChatinfoMapper chatinfoMapper;
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
 
 
     @Override
@@ -71,5 +77,29 @@ public class UserServiceImpl implements UserService {
 
         //2. 返回聊天记录
         return Result.success(chatList);
+    }
+
+    @Transactional
+    public Result renameChat(Integer chatID, String chatTitle, Integer userID){
+        //1. 更新聊天记录的标题
+        Integer count = chatMapper.renameChat(chatID, chatTitle, userID);
+        if(count == 0){
+            return Result.error("重命名失败");
+        }
+        return Result.success("重命名成功");
+    }
+
+    @Transactional
+    public Result deleteChat(Integer chatID, int i){
+        //1. 删除聊天记录
+        chatinfoMapper.deleteChatinfo(chatID);
+        Integer count = chatMapper.deleteChat(chatID, i);
+        if(count == 0){
+            return Result.error("删除失败");
+        }
+
+        //删除Redis中的聊天记录
+        stringRedisTemplate.delete("messageList"+ chatID);
+        return Result.success("删除成功");
     }
 }

@@ -1,10 +1,7 @@
 package com.example.demo.Service;
 
-import com.example.demo.Pojo.Chat;
 import com.example.demo.Pojo.Result;
 import com.example.demo.Pojo.User;
-
-import java.util.List;
 
 public interface UserService {
     Result userRegister(User user);
@@ -12,4 +9,8 @@ public interface UserService {
     Result userLogin(String userName, String password);
 
     Result getAllChatList(String userID);
+
+    Result renameChat(Integer chatID, String chatTitle, Integer userID);
+
+    Result deleteChat(Integer chatID, int i);
 }

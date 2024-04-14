@@ -1,9 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { ElIcon } from 'element-plus'
 import { message } from 'ant-design-vue';
 import axios from 'axios'
-import { nextTick } from 'vue';
+import { marked } from '/node_modules/.vite/deps/marked.js?v=fc896a47';
 
 const emit = defineEmits(['send-message', 'change-sessionID'])
 
@@ -15,6 +15,7 @@ const inputValue = ref('')
 const result = ref('')
 const combinedArray = ref([])
 const scrollbar = ref(null)
+const forbidInput = ref(false)
 watch(() => props.ifChat, (newVal, oldVal) => {
     localIfChat.value = newVal
     // 如果是变成false，则清空聊天记录
@@ -25,22 +26,18 @@ watch(() => props.ifChat, (newVal, oldVal) => {
 
 watch(() => props.chatID, (newVal, oldVal) => {
     // 如果新旧值相等，则不做任何操作，===比较的是引用地址，==
-    if (newVal == oldVal||newVal===oldVal) {
+    if (newVal == oldVal || newVal === oldVal) {
         return
     }
 
     // 如果chatID的值和newVal一致
-    if(chatID.value == newVal){
+    if (chatID.value == newVal) {
         return
     }
 
 
     chatID.value = newVal
 
-
-    // 输出新旧值
-    console.log('newVal:', newVal)
-    console.log('oldVal:', oldVal)
     // 发起请求，获取sessionInfo
     if (newVal > 0) {
         axios.get('http://127.0.0.1:8080/getChatInfo?chatID=' + newVal, {
@@ -70,15 +67,6 @@ watch(() => props.chatID, (newVal, oldVal) => {
                         content: tempArray[1]
                     })
                 })
-
-
-                //  // 判断localStrorage中是否有chatID的值，如果没有，则以当前chatID为键,res.data.data为值存入localStorage
-                // if (!localStorage.getItem(chatID.value)) {
-                //     localStorage.setItem(chatID.value, res.data.data)
-                // }else{
-                //     localStorage.setItem(chatID.value, localStorage.getItem(chatID.value) + res.data.data)
-                // }
-
 
             } else {
                 message.error('获取聊天记录失败')
@@ -129,7 +117,7 @@ function clearInput() {
     inputValue.value = ''
 }
 
-// 要根据选择的模型来发送请求，这里暂时只有通义千问
+// 要根据选择的模型来发送请求
 function sendMessage() {
     if (props.isLogin === false) {
         message.error('请先登录')
@@ -151,17 +139,22 @@ function sendMessage() {
     })
     // 发送信号给父组件提示已经发送消息
     emit('send-message', inputValue.value, chatID.value)
-    aliChat()
+
+    aiChat()
     clearInput()
 }
 
-function aliChat() {
+function aiChat() {
+    // 禁止输入框输入
+    forbidInput.value = true
+    console.log('forbidInput:', forbidInput.value)
+
     const sessionID = props.chatID
 
     // 携带cookie发送请求
-    const source = new EventSource("http://127.0.0.1:8080/aliChat?inputValue=" + inputValue.value +
+    const source = new EventSource("http://127.0.0.1:8080/aiChat?inputValue=" + inputValue.value +
         "&chatID=" + chatID.value +
-        "&chatModel=" + "通义千问", {
+        "&chatModel=" + chatModel.value, {
         withCredentials: true
     })
 
@@ -171,6 +164,7 @@ function aliChat() {
         if (ifClose) {
             chatID.value = event.data
             emit('change-sessionID', event.data)
+            forbidInput.value = false
             source.close()
             return
         }
@@ -194,20 +188,18 @@ function aliChat() {
                 }
             });
         }
-
-        // // 判断localStrorage中是否有chatID的值，如果没有，则以当前chatID为键,event.data为值存入localStorage
-        // if (!localStorage.getItem(chatID.value)) {
-        //     localStorage.setItem(chatID.value, event.data)
-        // }else{
-        //     localStorage.setItem(chatID.value, localStorage.getItem(chatID.value) + event.data)
-        // }
-
-
     }
     source.onerror = function (event) {
         console.log(event)
         message.error('请求失败')
+        //终止请求
+        source.close()
+        forbidInput.value = false
     }
+}
+
+function markdownToHtml(content) {
+    return marked(content)
 }
 </script>
 
@@ -269,7 +261,7 @@ function aliChat() {
                                     <User />
                                 </el-icon>
                                 <span style="color:rgb(31, 35, 40);font-size:16px;">
-                                    <div style="white-space: pre-line;">{{ item.content }}</div>
+                                    {{ item.content }}
                                 </span>
                             </div>
                         </div>
@@ -282,7 +274,8 @@ function aliChat() {
                                 </el-icon>
                                 <el-card style="border-radius: 14px;">
                                     <p style="color:rgb(31, 35, 40);font-size:16px;">
-                                    <div style="white-space: pre-line;">{{ item.content }}</div>
+                                        <!-- 将\n替换为<br> -->
+                                        <span v-html="markdownToHtml(item.content.replace(/\\n/g, '<br>'))"></span>
                                     </p>
                                 </el-card>
                             </div>
@@ -297,10 +290,11 @@ function aliChat() {
             <el-option label="文心一言" value="文心一言"></el-option>
         </el-select>
 
+
         <div class="chat-area">
             <el-input v-model="inputValue" type="textarea" placeholder="请输入内容" size="large" maxlength="1500"
-                resize="none" show-word-limit :rows="4" @clear="clearInput" @keydown.enter.prevent="sendMessage"
-                style="width: 65%;height:80px;">
+                :disabled="forbidInput" resize="none" show-word-limit :rows="4" @clear="clearInput"
+                @keydown.enter.prevent="sendMessage" style="width: 65%;height:80px;">
             </el-input>
         </div>
     </div>
@@ -308,6 +302,28 @@ function aliChat() {
 </template>
 
 <style scoped>
+.cursor {
+    display: inline-block;
+    width: 1px;
+    height: 1em;
+    background-color: black;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
 .main {
     background-color: rgb(247, 248, 252);
     height: calc(100vh - 100px);
