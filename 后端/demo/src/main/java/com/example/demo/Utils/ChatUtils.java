@@ -31,10 +31,20 @@ public class ChatUtils {
         String[] userMessages = messageList.split("user: ");
         //遍历userMessages，将每个元素按"assistant: "分割
         for (String userMessage : userMessages) {
-            //第一个元素是空字符串，跳过
+            //如果开头是"system:"，则设置为系统信息
+            if (userMessage.startsWith("system:")) {
+                Message system = Message.builder()
+                        .role(Role.SYSTEM.getValue())
+                        .content(userMessage.substring(8))
+                        .build();
+                messages.add(system);
+                continue;
+            }
+            // 如果为空字符串，则跳过
             if (userMessage.equals("")) {
                 continue;
             }
+
             String[] assistantMessages = userMessage.split("assistant: ");
             //此时第一个信息一定是用户信息，将其添加到messages中
             Message user = Message.builder()
@@ -55,17 +65,25 @@ public class ChatUtils {
         return messages;
     }
 
-    public static StringBuilder messageListToJson(List<Message> messages) {
+    public static StringBuilder messageListToJson(List<Message> messages, String system, Float temperature, Double top_p) {
         StringBuilder json = new StringBuilder("{\"messages\": [");
         for (Message message : messages) {
             String role = message.getRole();
+            if(role.equals("system")){
+                continue;
+            }
             String content = message.getContent();
             content = content.replace("\"", "“");
             content = content.replace("\n", "");
             json.append("{\"role\":\"").append(role).append("\",\"content\":\"").append(content).append("\"},");
         }
         json.deleteCharAt(json.length() - 1);
-        json.append("],\"stream\":true,\"disable_search\":false,\"enable_citation\":false}");
+        json.append("],\"stream\":true,\"disable_search\":false,\"enable_citation\":false");
+        json.append(",\"system\":\"").append(system).append("\"");
+        json.append(",\"temperature\":").append(temperature);
+        json.append(",\"top_p\":").append(top_p);
+        json.append("}");
+
         return json;
     }
 
@@ -79,6 +97,13 @@ public class ChatUtils {
         //如果messageList不为空，则用其构建一个Message对象
         if (messageList != null) {
             messages = ChatUtils.createAliMessageList(messageList);
+        }else{
+            Message systemMessage = Message.builder()
+                    .role(Role.SYSTEM.getValue())
+                    .content(chat.getSystem())
+                    .build();
+
+            messages.add(systemMessage);
         }
 
         //2. 创建新会话
@@ -97,7 +122,8 @@ public class ChatUtils {
                 .model("qwen-turbo")
                 .messages(messages)
                 .resultFormat(GenerationParam.ResultFormat.MESSAGE)
-                .topP(0.8).enableSearch(true)
+                .temperature(chat.getTemperature())
+                .topP(chat.getTop_p()).enableSearch(true)
                 .incrementalOutput(true)
                 .build();
 
@@ -114,7 +140,7 @@ public class ChatUtils {
         StringBuilder userContent = new StringBuilder(inputValue);
         StringBuilder assistantContent = new StringBuilder(fullContent);
         if(chat.getMessageList() == null){
-            chat.setMessageList("user: " + userContent + "\nassistant: " + assistantContent + "\n");
+            chat.setMessageList("system:" + chat.getSystem() + "\nuser: " + userContent + "\nassistant: " + assistantContent + "\n");
         }else{
             chat.setMessageList(chat.getMessageList() + "user: " + userContent + "\nassistant: " + assistantContent + "\n");
         }
@@ -129,6 +155,8 @@ public class ChatUtils {
         }
     }
 
+
+
     public static void baiduStreamCall(Chat chat, SseEmitter sseEmitter) throws IOException {
         // 获得用户输入的问题
         String inputValue = chat.getInputValue();
@@ -142,7 +170,7 @@ public class ChatUtils {
         }
 
         // 创建Json对象
-        StringBuilder json = ChatUtils.messageListToJson(ChatUtils.createAliMessageList(messageList));
+        StringBuilder json = ChatUtils.messageListToJson(ChatUtils.createAliMessageList(messageList), chat.getSystem(), chat.getTemperature(), chat.getTop_p());
 
         // 向百度接口发送请求
         String accessToken = getAccessToken();
@@ -173,7 +201,6 @@ public class ChatUtils {
                             Buffer buffer = new Buffer();
                             StringBuilder content = new StringBuilder();
 
-                            // 实际流式处理逻辑可能涉及循环读取buffer部分内容，例如：
                             while (true) {
                                 long read = responseBody.source().read(buffer, 8192);
                                 if (read == -1) {
@@ -193,8 +220,13 @@ public class ChatUtils {
                             sseEmitter.send("CHAT COMPLETED!");
                             sseEmitter.send(chat.getChatID());
 
-                            // 将对话记录存储到chat对象中
-                            chat.setMessageList(finalMessageList + "assistant: " + content + "\n");
+                            // 将对话记录存储到chat对象中，拼接上user输入和assistant回答
+                            if(chat.getMessageList()==null){
+                                chat.setMessageList("system:" + chat.getSystem() + "\n" + finalMessageList + "assistant: " + content + "\n");
+                            }else{
+                                chat.setMessageList(finalMessageList + "assistant: " + content + "\n");
+                            }
+
                             sseEmitter.complete();
 
                             isEnd[0] = true;

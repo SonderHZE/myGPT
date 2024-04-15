@@ -45,6 +45,12 @@
             <scope>test</scope>
         </dependency>
 
+<!--        websocket-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
 <!--        aliyun-->
         <!-- https://mvnrepository.com/artifact/com.alibaba/dashscope-sdk-java -->
         <dependency>

@@ -16,6 +16,9 @@ const result = ref('')
 const combinedArray = ref([])
 const scrollbar = ref(null)
 const forbidInput = ref(false)
+const temperature = ref(0.5)
+const top_p = ref(0.5)
+const system = ref('你是一个学识渊博的大师')
 watch(() => props.ifChat, (newVal, oldVal) => {
     localIfChat.value = newVal
     // 如果是变成false，则清空聊天记录
@@ -49,15 +52,25 @@ watch(() => props.chatID, (newVal, oldVal) => {
                 combinedArray.value = []
 
                 let messageList = res.data.data
-                // 将messageList中的数据按照user分割
+                // system:你是赵今麦\nuser: 你是谁\nassistant: 我是赵今麦，中国内地青年女演员，出生于2001年，因出演《小别离》中的朵朵一角崭露头角。我参演过多部影视作品，致力于表演艺术。如果你有关于我的作品、演艺经历或者合作项目的问题，我会尽力回答。\n
+                // 找到第一个user:的下标
+                let userIndex = messageList.indexOf('user:')
+                // 将下标之间的字符串截取出来
+                let systemInfo = messageList.substring(0, userIndex)
+                // 去掉system:和\n
+                system.value = systemInfo.substring(7, systemInfo.length - 1)
+
+
+               
+                //1. 先将messageList按照user分割
                 let splitArray = messageList.split('user: ')
-                // 遍历splitArray，将每一项按照assistant分割
+                //2. 遍历splitArray，将每一项按照assistant分割  
                 splitArray.forEach((item, index) => {
                     if (index === 0) {
                         return
                     }
                     let tempArray = item.split('assistant: ')
-                    // 将每一项的assistant部分插入到combinedArray中
+                    //3. 将每一项的assistant部分插入到combinedArray中
                     combinedArray.value.push({
                         type: 'human',
                         content: tempArray[0]
@@ -154,7 +167,11 @@ function aiChat() {
     // 携带cookie发送请求
     const source = new EventSource("http://127.0.0.1:8080/aiChat?inputValue=" + inputValue.value +
         "&chatID=" + chatID.value +
-        "&chatModel=" + chatModel.value, {
+        "&chatModel=" + chatModel.value + 
+        "&temperature=" + temperature.value +
+        "&top_p=" + top_p.value +
+        "&system=" + system.value
+        , {
         withCredentials: true
     })
 
@@ -284,11 +301,29 @@ function markdownToHtml(content) {
                 </el-scrollbar>
             </div>
         </div>
-        <!-- 模型选择，通义千问或者文心一言 -->
-        <el-select v-model="chatModel" placeholder="请选择模型" style="width: 120px;">
-            <el-option label="通义千问" value="通义千问"></el-option>
-            <el-option label="文心一言" value="文心一言"></el-option>
-        </el-select>
+
+        <div class="setting-area" style="margin-left: 166px;display:flex">
+            <!-- 模型选择，通义千问或者文心一言 -->
+            <el-select v-model="chatModel" placeholder="请选择模型" style="width: 120px">
+                <el-option label="通义千问" value="通义千问"></el-option>
+                <el-option label="文心一言" value="文心一言"></el-option>
+            </el-select>
+
+            <!-- tempeture -->
+            <el-input-number v-model="temperature" controls-position="right" :min="0.001" :max="0.999" :step="0.1"
+                style="margin-left: 20px;width: 120px" placeholder="tempeture" size="small" title="较高的数值会使输出更加随机，而较低的数值会使其更加集中和确定">
+            </el-input-number>
+
+            <!-- top_p -->
+            <el-input-number v-model="top_p" controls-position="right" :min="0.001" :max="0.999" :step="0.1"
+                style="margin-left: 20px;width: 120px" placeholder="top_p" size="small" title="影响输出文本的多样性，取值越大，生成文本的多样性越强">
+            </el-input-number>
+
+            <!-- system设置 -->
+            <el-input v-model="system" placeholder="请输入系统设置" style="margin-left: 20px;width: 325px" size="small" 
+                                        :disabled="props.chatID > 0"
+                title="模型人设，主要用于人设设定，例如，你是xxx公司制作的AI助手" />
+        </div>
 
 
         <div class="chat-area">
@@ -296,8 +331,10 @@ function markdownToHtml(content) {
                 :disabled="forbidInput" resize="none" show-word-limit :rows="4" @clear="clearInput"
                 @keydown.enter.prevent="sendMessage" style="width: 65%;height:80px;">
             </el-input>
+            <el-button type="primary" size="large" @click="sendMessage" style="margin-top: 52px;">发送</el-button>
         </div>
     </div>
+
 
 </template>
 

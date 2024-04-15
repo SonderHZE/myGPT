@@ -42,14 +42,6 @@ public class AliServiceImpl {
         }else{
             // 是一个已有对话
             chat.setTime(time);
-
-//            // 是已有对话但是messageList为空，说明session过期，需要重新从数据库中获取
-//            if(chat.getMessageList()==null){
-//                System.out.println("session过期，重新从数据库中获取");
-//                chat.setMessageList(chatinfoMapper.getMessageList(chatID));
-//            }
-
-            // messageList为空，说明redis没命中，需要重新从数据库中获取
             if(chat.getMessageList()==null){
                 System.out.println("redis没命中，重新从数据库中获取");
                 chat.setMessageList(chatinfoMapper.getMessageList(chatID));

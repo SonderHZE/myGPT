@@ -89,22 +89,27 @@ function resetPage() {
 
 function sendMessage(inputValue, chatID) {
     ifChat.value = true;
-    // 向消息列表中添加新消息，标题为inputValue，时间为当前时间
-    // 消息列表中没有该对话，则添加该对话
     if (chatList.value.find(item => item.chatID == chatID)) {
         return;
     }
 
-    chatList.value.push({
+    // 在chatList的最前面插入新的会话
+    chatList.value.unshift({
         chatID: chatID,
         chatTitle: inputValue,
-        time: new Date().toISOString()
+        time: new Date().toISOString(),
     });
     distributeChars();
 }
 
 function changeSession(newSessionID) {
     chatID.value = newSessionID;
+
+    // 将ID为-1的会话更改为新的ID
+    if (chatList.value.find(item => item.chatID == -1)) {
+        chatList.value.find(item => item.chatID == -1).chatID = newSessionID;
+    }
+
 }
 
 function clearChatList() {

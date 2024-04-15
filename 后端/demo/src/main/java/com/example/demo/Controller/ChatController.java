@@ -31,9 +31,8 @@ public class ChatController {
 
     // 调用Ai接口
     @GetMapping("/aiChat")
-    public SseEmitter handleGetRequest(@RequestParam String chatModel,
-                                       @RequestParam Integer chatID,
-                                       @RequestParam String inputValue,
+    public SseEmitter handleGetRequest(@RequestParam String chatModel, @RequestParam Integer chatID, @RequestParam String inputValue,
+                                       @RequestParam Float temperature, @RequestParam Double top_p, @RequestParam String system,
                                        HttpServletRequest request, HttpServletResponse response) throws IOException, InterruptedException {
         SseEmitter sseEmitter = new SseEmitter();
 
@@ -54,12 +53,17 @@ public class ChatController {
         chat.get().setChatID(chatID);
         chat.get().setInputValue(inputValue);
         chat.get().setChatModel(chatModel);
+        chat.get().setTemperature(temperature);
+        chat.get().setTop_p(top_p);
+        chat.get().setSystem(system);
 
 
         //3. 从redis中获取对话记录
         if(stringRedisTemplate.hasKey("messageList"+chatID)){
             String value = stringRedisTemplate.opsForValue().get("messageList"+chatID);
             chat.get().setMessageList(value);
+
+            String systemValue = stringRedisTemplate.opsForValue().get("chatinfo:chatID"+chatID+":system");
 
             // 更新备份键的过期时间
             stringRedisTemplate.expire("backupKey"+"messageList"+chatID, 60*30+20, TimeUnit.SECONDS);
@@ -97,13 +101,6 @@ public class ChatController {
     @GetMapping("/getChatInfo")
     public Result getChatInfo(@RequestParam Integer chatID, HttpServletRequest request){
         Result result = new Result();
-//        // 先从session中获取对话记录，如果有则直接返回，否则去数据库查询
-//        HttpSession session = request.getSession();
-//        String messageList = (String) session.getAttribute("messageList"+chatID);
-//        if(messageList!=null){
-//            result = Result.success(messageList);
-//            return result;
-//        }
 
         // 从redis中获取对话记录
         if(stringRedisTemplate.hasKey("messageList"+chatID)){

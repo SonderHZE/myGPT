@@ -12,6 +12,18 @@ public class Chat {
     private String chatModel;
     private String messageList;
 
+    public String getSystem() {
+        return system;
+    }
+
+    public void setSystem(String system) {
+        this.system = system;
+    }
+
+    private Float temperature;
+    private Double top_p;
+    private String system;
+
     public String getChatModel() {
         return chatModel;
     }
@@ -70,5 +82,21 @@ public class Chat {
 
     public void setMessageList(String messageList) {
         this.messageList = messageList;
+    }
+
+    public Float getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(Float temperature) {
+        this.temperature = temperature;
+    }
+
+    public Double getTop_p() {
+        return top_p;
+    }
+
+    public void setTop_p(Double top_p) {
+        this.top_p = top_p;
     }
 }

@@ -100,6 +100,7 @@ public class UserServiceImpl implements UserService {
 
         //删除Redis中的聊天记录
         stringRedisTemplate.delete("messageList"+ chatID);
+        stringRedisTemplate.delete("backupKey"+"messageList"+ chatID);
         return Result.success("删除成功");
     }
 }
