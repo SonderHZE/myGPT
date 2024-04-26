@@ -117,7 +117,9 @@ public class ChatController {
         if(result.getStatus().equals("success")) {
             String messageList = (String) result.getData();
 
-
+            if(messageList == null){
+                return Result.error("没有对话记录");
+            }
             // 将对话记录存入redis以及过期时间
             stringRedisTemplate.opsForValue().set("messageList"+chatID, messageList);
             stringRedisTemplate.expire("messageList"+chatID, 60*30, TimeUnit.SECONDS);

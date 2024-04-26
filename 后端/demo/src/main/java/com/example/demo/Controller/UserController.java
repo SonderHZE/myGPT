@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @Autowired
     UserServiceImpl userService;
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
 
     //用户注册
     @PostMapping("/user/register")
@@ -45,8 +48,8 @@ public class UserController {
 
         // 根据信息生成token,并且允许cookie跨域
         user = (User) result.getData();
-        JWTUtil.generateToken(user);
-        ResponseCookie cookie = ResponseCookie.from("token", JWTUtil.generateToken(user))
+        String token = JWTUtil.generateToken(user);
+        ResponseCookie cookie = ResponseCookie.from("token", token)
                 .httpOnly(true)
                 .sameSite("None")
                 .secure(true)
@@ -68,6 +71,10 @@ public class UserController {
 
         response.addHeader("Set-Cookie", cookie.toString());
 
+        // 将JWT令牌放入redis
+        stringRedisTemplate.opsForValue().set("user::" + user.getUserID()+"::token", token, 60*30, java.util.concurrent.TimeUnit.SECONDS);
+        // 设置登录时间
+        stringRedisTemplate.opsForValue().set("user::" + user.getUserID()+"::loginTime", String.valueOf(System.currentTimeMillis()), 60*30, java.util.concurrent.TimeUnit.SECONDS);
 
 
         return result;
@@ -79,13 +86,24 @@ public class UserController {
         String token = CookieUtil.getCookieValue(request, "token");
         String userID = JWTUtil.parseToken(token, "userID");
 
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + userID + "::token");
+        if(redisToken == null || !redisToken.equals(token)){
+            return Result.error("请先登录");
+        }
+
         return userService.getAllChatList(userID);
     }
 
     //用户登出
-    @GetMapping("/user/logout")
+    @PostMapping("/user/logout")
     public Result userLogout(HttpServletRequest request, HttpServletResponse response){
         CookieUtil.deleteCookie(request, response, "token");
+        String token = CookieUtil.getCookieValue(request, "token");
+        String userID = JWTUtil.parseToken(token, "userID");
+        // 删除redis中的token
+        stringRedisTemplate.delete("user::" + userID + "::token");
+        stringRedisTemplate.delete("user::" + userID + "::loginTime");
+
         return Result.success("登出成功");
     }
 

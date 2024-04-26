@@ -1,9 +1,9 @@
 <script setup>
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import CryptoJS from 'crypto-js';
 import { defineEmits } from 'vue'
+import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['login-success'])
 
@@ -35,15 +35,12 @@ function login() {
         }
     ).then(res => {
         if (res.data.status === "success") {
-            ElMessage({
-                message: '登录成功',
-                type: 'success'
-            })
+            let userID = res.data.data.userID
+            let userName = res.data.data.userName
+            let mobilePhone = res.data.data.mobilePhone
 
-            userID = res.data.data.userID
-            userName = res.data.data.userName
-            mobilePhone = res.data.data.mobilePhone
-
+            userLogin.value.userName = ''
+            userLogin.value.password = ''
             emit('login-success', userID, userName, mobilePhone)
         } else {
             ElMessage({

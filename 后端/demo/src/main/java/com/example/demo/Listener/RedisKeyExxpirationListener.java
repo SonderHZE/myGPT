@@ -23,6 +23,10 @@ public class RedisKeyExxpirationListener extends KeyExpirationEventMessageListen
     //当监听到过期key时，会调用这个方法，message是过期的key
     public void onMessage(Message message, byte[] pattern) {
         String expireKey = message.toString();
+        if(expireKey.startsWith("user::")){
+            return;
+        }
+
         if(expireKey.startsWith("backupKey")){
             return;
         }

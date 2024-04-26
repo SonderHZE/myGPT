@@ -3,7 +3,6 @@ import { ref, watch, nextTick } from 'vue'
 import { ElIcon } from 'element-plus'
 import { message } from 'ant-design-vue';
 import axios from 'axios'
-import { marked } from '/node_modules/.vite/deps/marked.js?v=fc896a47';
 
 const emit = defineEmits(['send-message', 'change-sessionID'])
 
@@ -28,6 +27,12 @@ watch(() => props.ifChat, (newVal, oldVal) => {
 })
 
 watch(() => props.chatID, (newVal, oldVal) => {
+    console.log('chatID:', newVal)
+    if(newVal == -1){
+        // 清空combinedArray
+        combinedArray.value = []
+    }
+
     // 如果新旧值相等，则不做任何操作，===比较的是引用地址，==
     if (newVal == oldVal || newVal === oldVal) {
         return
@@ -115,16 +120,6 @@ watch(() => props.sessionInfo, (newVal, oldVal) => {
         })
     }
 })
-
-// 占位，待实现
-function changeRecommend() {
-    console.log('换一批推荐')
-}
-
-// 占位，待实现
-function RefreshRight() {
-    return '换一批'
-}
 
 function clearInput() {
     inputValue.value = ''
