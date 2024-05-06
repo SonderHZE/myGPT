@@ -11,12 +11,6 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 const app = createApp(App)
 
-const baseURL = '/api'
-const axiosInstance = axios.create({
-  baseURL,
-  timeout: 10000
-})
-
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }

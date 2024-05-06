@@ -13,4 +13,6 @@ public interface UserService {
     Result renameChat(Integer chatID, String chatTitle, Integer userID);
 
     Result deleteChat(Integer chatID, int i);
+
+    Result getUserInfo(int i);
 }

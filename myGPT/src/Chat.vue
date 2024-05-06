@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import chatInfo from './components/chatComponents/chatInfo.vue'
 import chatHead from './components/chatComponents/chatHead.vue'
 import chatList from './components/chatComponents/chatList.vue';
@@ -10,10 +10,6 @@ const systemInfo = ref('')
 const messageList = ref([])
 
 
-// 监听messageList的变化
-// watch(() => messageList.value, (value) => {
-//     console.log(value)
-// })
 
 // 搜索框内容
 const searchInfo = ref([])

@@ -48,6 +48,13 @@ public class UserController {
 
         // 根据信息生成token,并且允许cookie跨域
         user = (User) result.getData();
+
+        // 检查redis中是否有该用户的token
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + user.getUserID()+"::token");
+        if(redisToken != null){
+            return Result.error("用户已登录");
+        }
+
         String token = JWTUtil.generateToken(user);
         ResponseCookie cookie = ResponseCookie.from("token", token)
                 .httpOnly(true)
@@ -78,6 +85,22 @@ public class UserController {
 
 
         return result;
+    }
+
+    @GetMapping("/user/login")
+    public Result userLogin(HttpServletRequest request){
+        String token = CookieUtil.getCookieValue(request, "token");
+        if(token == null) return Result.error("请先登录");
+        String userID = JWTUtil.parseToken(token, "userID");
+
+        // 对比redis中的token
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + userID + "::token");
+        if(redisToken == null || !redisToken.equals(token)){
+            return Result.error("请先登录");
+        }
+
+
+        return userService.getUserInfo(Integer.parseInt(userID));
     }
 
     //获取所有聊天记录

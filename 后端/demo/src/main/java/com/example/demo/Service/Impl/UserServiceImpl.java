@@ -70,6 +70,13 @@ public class UserServiceImpl implements UserService {
         return Result.success(user);
     }
 
+    public Result getUserInfo(int i){
+        User user = userMapper.getUserByUserID(i);
+        user.setPassword(null);
+
+        return Result.success(user);
+    }
+
     @Override
     public Result getAllChatList(String userID) {
         //1. 查询用户的所有聊天记录

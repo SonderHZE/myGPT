@@ -1,11 +1,9 @@
 <script setup>
-import indexView from './Index.vue'
-import chatView from './Chat.vue'
 </script>
 
 <template>
   <div style>
-    <chatView/>
+    <router-view />
   </div>
 </template>
 

@@ -1,14 +1,29 @@
 <script setup>
-import { ref,watch} from 'vue'
+import { ref,watch, onMounted} from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 import UserLogin from './userLogin.vue'
 import userRegister from './userRegister.vue';
+const router = useRouter()
 const ifLogin = ref(false)
 const login = ref(false)
 const register = ref(false)
 const props = defineProps({
     ifLogin: Boolean
+})
+
+onMounted(() => {
+    // 如果cookie中有登录信息，直接登录
+    axios.get("http://127.0.0.1:8080/user/login", {
+        withCredentials: true
+    }).then(res => {
+        if (res.data.status === 'success') {
+            handleLoginSuccess(res.data.data.userID, res.data.data.userName, res.data.data.mobilePhone)
+        }
+    }).catch(err => {
+        console.log(err)
+    })
 })
 
 // 监视从父组件传来的登录状态
@@ -66,6 +81,11 @@ function logout() {
     })
 }
 
+function changeToUserInfo() {
+    // 跳转到个人信息页面
+    router.push('/user')
+}
+
 </script>
 
 <template>
@@ -89,7 +109,7 @@ function logout() {
                     </el-icon>
                 </span>
                 <template #dropdown>
-                    <el-dropdown-item v-if="ifLogin === true">个人中心</el-dropdown-item>
+                    <el-dropdown-item v-if="ifLogin === true" @click="changeToUserInfo">个人中心</el-dropdown-item>
                     <el-dropdown-item v-if="ifLogin === true" @click="logout">退出登录</el-dropdown-item>
                     <el-dropdown-item v-if="ifLogin === false" @click="login = true">登录</el-dropdown-item>
                     <el-dropdown-item v-if="ifLogin === false" @click="register = true">注册</el-dropdown-item>

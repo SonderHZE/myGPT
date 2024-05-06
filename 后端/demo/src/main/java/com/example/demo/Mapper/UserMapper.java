@@ -19,4 +19,7 @@ public interface UserMapper {
 
     @Select("select * from users where userName = #{userName} or mobilePhone = #{mobilePhone}")
     User getUserByUserNameOrMobilePhone(String userName, String mobilePhone);
+
+    @Select("select * from users where userID = #{userID}")
+    User getUserByUserID(int i);
 }
