@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -130,4 +131,63 @@ public class ChatController {
         return result;
     }
 
+    // 图像创作
+    @PostMapping("/imageCreation")
+    public Result imageCreation(@RequestParam String prompt, @RequestParam String size, @RequestParam Integer n,
+                                HttpServletRequest httpServletRequest) throws Exception {
+        //检查是否有JWT
+        String token = CookieUtil.getCookieValue(httpServletRequest, "token");
+        if(token == null){
+            return Result.error("请先登录");
+        }
+
+        String userID = JWTUtil.parseToken(token, "userID");
+        if(userID.isEmpty()){
+            return Result.error("请先登录");
+        }
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + userID + "::token");
+        if(redisToken == null || !redisToken.equals(token)){
+            return Result.error("请先登录");
+        }
+
+
+
+        return aliServiceImpl.imageCreation(prompt, size, n);
+    }
+
+    // 单轮对话
+    @GetMapping("/textQuestion")
+    public SseEmitter textQuestion(@RequestParam String inputValue, @RequestParam String prompt, HttpServletRequest request) throws IOException {
+        SseEmitter sseEmitter = new SseEmitter();
+
+        //检查是否有JWT
+        String token = CookieUtil.getCookieValue(request, "token");
+        if(token == null){
+            sseEmitter.send("请先登录");
+            return sseEmitter;
+        }
+
+        String userID = JWTUtil.parseToken(token, "userID");
+        if(userID.isEmpty()){
+            sseEmitter.send("请先登录");
+            return sseEmitter;
+        }
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + userID + "::token");
+        if(redisToken == null || !redisToken.equals(token)){
+            sseEmitter.send("请先登录");
+            return sseEmitter;
+        }
+
+        // 调用通义千问接口
+        Thread t = new Thread(() -> {
+            try {
+                aliServiceImpl.textQuestion(inputValue, prompt, sseEmitter, userID);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t.start();
+
+        return sseEmitter;
+    }
 }

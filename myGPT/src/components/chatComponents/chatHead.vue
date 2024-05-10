@@ -19,7 +19,7 @@ onMounted(() => {
         withCredentials: true
     }).then(res => {
         if (res.data.status === 'success') {
-            handleLoginSuccess(res.data.data.userID, res.data.data.userName, res.data.data.mobilePhone)
+            handleLoginSuccess(res.data.data)
         }
     }).catch(err => {
         console.log(err)
@@ -36,24 +36,24 @@ const emit = defineEmits(['login-success','user-logout'])
 const user = ref({
     userID: '',
     userName: '',
-    mobilePhone: ''
+    mobilePhone: '',
+    defaultModel: '',
+    defaultPrompt: ''
 })
 
-function handleLoginSuccess(userID, userName, mobilePhone) {
+function handleLoginSuccess(res) {
     ifLogin.value = true
     login.value = false
     register.value = false
 
-    user.value.userID = userID
-    user.value.userName = userName
-    user.value.mobilePhone = mobilePhone
+    user.value.userID = res.userID
+    user.value.userName = res.userName
+    user.value.mobilePhone = res.mobilePhone
+    user.value.defaultModel = res.defaultModel
+    user.value.defaultPrompt = res.defaultPrompt
 
-    ElMessage({
-        message: '登录成功',
-        type: 'success'
-    })
 
-    emit('login-success', userID, userName, mobilePhone)
+    emit('login-success', user)
 }
 
 function logout() {
@@ -82,8 +82,10 @@ function logout() {
 }
 
 function changeToUserInfo() {
-    // 跳转到个人信息页面
-    router.push('/user')
+    // 跳转到个人中心页面，路径包含用户ID
+    router.push({
+        path: '/user/' + user.value.userID
+    })
 }
 
 </script>
@@ -94,11 +96,13 @@ function changeToUserInfo() {
             <img src="https://img.alicdn.com/imgextra/i1/O1CN01CC9kic1ig1r4sAY5d_!!6000000004441-2-tps-880-210.png"
                 style="height: 24px;padding-left: 50px" />
         </el-col>
-        <el-col :span="2" :offset="16" style="height:50px;align-items: center;display: flex;">
-            <el-icon>
-                <Position />
-            </el-icon>
-            百宝袋
+        <el-col :span="2" :offset="16" style="height:50px;align-items: center;display: flex;cursor: pointer;">
+            <div @click="router.push('/tools')">
+                <el-icon>
+                    <Tool />
+                </el-icon>
+                百宝袋
+            </div>
         </el-col>
         <el-col :span="2" style="height:50px;align-items: center;display: flex;">
             <el-dropdown>

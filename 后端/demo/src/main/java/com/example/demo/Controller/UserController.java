@@ -12,10 +12,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseCookie;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController("/user")
 public class UserController {
@@ -99,9 +96,92 @@ public class UserController {
             return Result.error("请先登录");
         }
 
-
+        // 续期
+        stringRedisTemplate.expire("user::" + userID + "::token", 60*30, java.util.concurrent.TimeUnit.SECONDS);
         return userService.getUserInfo(Integer.parseInt(userID));
     }
+
+    //获取用户信息,
+    @GetMapping("/user/getUserProfile")
+    public Result getUserProFile(HttpServletRequest request, @RequestParam Integer userID){
+        String token = CookieUtil.getCookieValue(request, "token");
+        if(token == null) return Result.error("请先登录");
+
+        // 判断redis中的token和cookie中的token是否一致
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + userID + "::token");
+        if(redisToken == null || !redisToken.equals(token)){
+            return Result.error("请先登录");
+        }
+
+        if(userID.toString().equals(JWTUtil.parseToken(token, "userID"))){
+            return userService.getUserInfo(userID);
+        }else{
+            return Result.error("无权查看");
+        }
+    }
+
+    @PostMapping("/user/updateUserProfile")
+    public Result updateUserProfile(@RequestBody User user, HttpServletRequest request){
+        String token = CookieUtil.getCookieValue(request, "token");
+        if(token == null) return Result.error("请先登录");
+        String userID = JWTUtil.parseToken(token, "userID");
+
+        // 判断redis中的token和cookie中的token是否一致
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + userID + "::token");
+        if(redisToken == null || !redisToken.equals(token)){
+            return Result.error("请先登录");
+        }
+
+
+        if(user.getUserID().toString().equals(JWTUtil.parseToken(token, "userID"))){
+            return userService.updateUserProfile(user);
+        }else{
+            return Result.error("无权修改");
+        }
+    }
+
+    // 修改密码
+    @PutMapping("/user/updatePassword")
+    public Result updatePassword(HttpServletRequest request, @RequestParam String newPassword, @RequestParam String oldPassword, @RequestParam Integer userID){
+        String token = CookieUtil.getCookieValue(request, "token");
+        if(token == null) return Result.error("请先登录");
+        String tokenUserID = JWTUtil.parseToken(token, "userID");
+
+        // 判断redis中的token和cookie中的token是否一致
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + userID + "::token");
+        if(redisToken == null || !redisToken.equals(token)){
+            return Result.error("请先登录");
+        }
+
+        if(userID.toString().equals(tokenUserID)){
+            return userService.updatePassword(newPassword, oldPassword, userID);
+        }else{
+            return Result.error("无权修改");
+        }
+
+    }
+
+    // 修改默认模式
+    @PutMapping("/user/updateUserSettings")
+    public Result updateUserSetting(HttpServletRequest request,  @RequestBody User user){
+        String token = CookieUtil.getCookieValue(request, "token");
+        if(token == null) return Result.error("请先登录");
+        String userID = JWTUtil.parseToken(token, "userID");
+
+        // 判断redis中的token和cookie中的token是否一致
+        String redisToken = stringRedisTemplate.opsForValue().get("user::" + userID + "::token");
+        if(redisToken == null || !redisToken.equals(token)){
+            return Result.error("请先登录");
+        }
+
+        // 判断是否是自己的设置
+        if(!user.getUserID().toString().equals(JWTUtil.parseToken(token, "userID"))){
+            return Result.error("无权修改");
+        }
+
+        return userService.updateUserSetting(user.getDefaultModel(), user.getDefaultPrompt(), user.getUserID());
+    }
+
 
     //获取所有聊天记录
     @GetMapping("/user/getAllChatList")

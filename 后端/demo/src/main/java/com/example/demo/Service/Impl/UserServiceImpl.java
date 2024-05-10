@@ -110,4 +110,43 @@ public class UserServiceImpl implements UserService {
         stringRedisTemplate.delete("backupKey"+"messageList"+ chatID);
         return Result.success("删除成功");
     }
+
+    @Transactional
+    public Result updateUserProfile(User user){
+        //1. 更新用户信息
+        Integer count = userMapper.updateUserProfile(user);
+        if(count == 0){
+            return Result.error("更新失败");
+        }
+        return Result.success("更新成功");
+    }
+
+    @Transactional
+    public Result updatePassword(String newPassword, String oldPassword, int userID){
+        //1. 检查旧密码是否正确
+        User user1 = userMapper.getUserByUserID(userID);
+        if(!HashUtil.saltHash(oldPassword).equals(user1.getPassword())){
+            return Result.error("旧密码错误");
+        }
+
+        //2. 更新密码
+        if(newPassword == null || newPassword.equals("")){
+            return Result.error("密码不能为空");
+        }
+        Integer count = userMapper.updatePassword(HashUtil.saltHash(newPassword), userID);
+        if(count == 0){
+            return Result.error("更新失败");
+        }
+        return Result.success("更新成功");
+    }
+
+    @Transactional
+    public Result updateUserSetting(String defaultModel, String defaultPrompt, int userID){
+        //1. 更新用户设置
+        Integer count = userMapper.updateUserSetting(defaultModel, defaultPrompt, userID);
+        if(count == 0){
+            return Result.error("更新失败");
+        }
+        return Result.success("更新成功");
+    }
 }

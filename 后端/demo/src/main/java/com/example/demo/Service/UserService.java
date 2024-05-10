@@ -15,4 +15,10 @@ public interface UserService {
     Result deleteChat(Integer chatID, int i);
 
     Result getUserInfo(int i);
+
+    Result updateUserProfile(User user);
+
+    Result updatePassword(String newPassword, String oldPassword, int userID);
+
+    Result updateUserSetting(String defaultModel, String defaultPrompt, int i);
 }

@@ -5,6 +5,25 @@ public class User {
    private String userName;
    private String password;
    private String mobilePhone;
+   private String defaultModel;
+   private String defaultPrompt;
+
+    public String getDefaultPrompt() {
+        return defaultPrompt;
+    }
+
+    public void setDefaultPrompt(String defaultPrompt) {
+        this.defaultPrompt = defaultPrompt;
+    }
+
+    public String getDefaultModel() {
+        return defaultModel;
+    }
+
+    public void setDefaultModel(String defaultModel) {
+        this.defaultModel = defaultModel;
+    }
+
 
     public String getMobilePhone() {
         return mobilePhone;

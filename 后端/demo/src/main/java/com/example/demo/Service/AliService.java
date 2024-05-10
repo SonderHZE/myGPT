@@ -6,5 +6,5 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface AliService {
     Chat aliChat(Chat chat, SseEmitter sseEmitter, Integer userID) throws Exception;
-    Result getChatInfo(Integer chatID);
+    Result imageCreation(String prompt, String size, Integer n) throws Exception;
 }

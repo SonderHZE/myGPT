@@ -177,7 +177,7 @@ function deleteChat(ID) {
         <!-- 刷新按钮 -->
         <div class="refresh-area"
             style="width:100%; height:40px; display: flex; align-items: center; justify-content: center;">
-            <el-button type="primary" @click="gettAllChatList" style="color: #333; font-size: 14px;" round><el-icon>
+            <el-button type="primary" @click="gettAllChatList" style="background-color:#800080; font-size: 14px;" round><el-icon>
                     <Refresh />
                 </el-icon>刷新</el-button>
         </div>

@@ -119,12 +119,13 @@ public class ChatUtils {
 
         //4. 创建GenerationParam对象
         GenerationParam generationParam = GenerationParam.builder()
-                .model("qwen-turbo")
+                .model("qwen-max-0428")
                 .messages(messages)
                 .resultFormat(GenerationParam.ResultFormat.MESSAGE)
                 .temperature(chat.getTemperature())
                 .topP(chat.getTop_p()).enableSearch(true)
                 .incrementalOutput(true)
+                .enableSearch(true)
                 .build();
 
         //5. 流式调用通义千问接口

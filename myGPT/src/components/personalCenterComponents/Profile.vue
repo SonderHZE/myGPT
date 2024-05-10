@@ -7,17 +7,9 @@
       </el-icon>
     </div>
     <div class="info-card">
-      <div class="info-item">
-        <span class="label">用户名:</span>
-        <span class="value">{{ userProfile.username }}</span>
-      </div>
-      <div class="info-item">
-        <span class="label">用户ID:</span>
-        <span class="value">{{ userProfile.userId }} <em>(不可更改)</em></span>
-      </div>
-      <div class="info-item">
-        <span class="label">手机号:</span>
-        <span class="value">{{ userProfile.phoneNumber }}</span>
+      <div class="info-item" v-for="(item, key) in userInfoItems" :key="key">
+        <span class="label">{{ item.label }}:</span>
+        <span class="value">{{ props.user[item.key] }}</span>
       </div>
       <el-button class="custom-btn" @click="showPasswordModal">修改密码</el-button>
     </div>
@@ -25,19 +17,26 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { defineProps, defineEmits } from 'vue';
 import { EditPen } from '@element-plus/icons-vue';
 
-const userProfile = ref({
-  username: '张三',
-  userId: '123456',
-  phoneNumber: '12345678901'
+const props = defineProps({
+  user: Object
 });
-const showPasswordModal = () => {
-  console.log('显示修改密码的模态框');
-};
+const userInfoItems = [
+  { label: '用户ID', key: 'userID' },
+  { label: '用户名', key: 'userName' },
+  { label: '手机号', key: 'mobilePhone' },
+];
+
+const emit = defineEmits(['edit-profile-requested', 'password-modal-requested']);
+
 const showEditProfile = () => {
-  console.log('显示编辑个人资料的界面');
+  emit('edit-profile-requested');
+};
+
+const showPasswordModal = () => {
+  emit('password-modal-requested');
 };
 </script>
 

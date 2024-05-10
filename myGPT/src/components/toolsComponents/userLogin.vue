@@ -1,16 +1,15 @@
-
 <template>
-    <el-form :model="userLogin" label-width="auto" style="max-width: 600px">
-        <el-form-item label="账号" prop="username">
-            <el-input v-model="userLogin.userName" placeholder="请输入用户名或手机号"></el-input>
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-            <el-input v-model="userLogin.password" type="password" placeholder="请输入密码"></el-input>
-        </el-form-item>
-        <el-form-item>
-            <el-button type="primary" @click="login">登录</el-button>
-        </el-form-item>
-    </el-form>
+<el-form :model="userLogin" label-width="auto" style="max-width: 600px">
+    <el-form-item label="账号" prop="username">
+        <el-input v-model="userLogin.userName" placeholder="请输入用户名或手机号"></el-input>
+    </el-form-item>
+    <el-form-item label="密码" prop="password">
+        <el-input v-model="userLogin.password" type="password" placeholder="请输入密码"></el-input>
+    </el-form-item>
+    <el-form-item>
+        <el-button type="primary" @click="login">登录</el-button>
+    </el-form-item>
+</el-form>
 </template>
 
 <script setup>

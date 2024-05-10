@@ -1,75 +1,7 @@
-<script setup>
-import { ref } from 'vue'
-import chatInfo from './components/chatComponents/chatInfo.vue'
-import chatHead from './components/chatComponents/chatHead.vue'
-import chatList from './components/chatComponents/chatList.vue';
-import sendComponent from './components/chatComponents/sendComponent.vue';
-const ifLogin = ref(false)
-const currentChatID = ref(-1)
-const systemInfo = ref('')
-const messageList = ref([])
-
-
-
-// 搜索框内容
-const searchInfo = ref([])
-function handleLoginSuccess() {
-    ifLogin.value = true
-}
-
-function handleReadChat(chatID) {
-    currentChatID.value = chatID
-}
-
-function handleSystemInfo(info, messages) {
-    systemInfo.value = info
-    messageList.value = messages
-}
-
-function resetPage() {
-    currentChatID.value = -1
-    messageList.value = []
-}
-
-function handleAddMessage(type, content) {
-    if(type === 'human'){
-        messageList.value.push({
-            type: 'human',
-            content: content
-        })
-    }else{
-        messageList.value.push({
-            type: 'ai',
-            content: content
-        })
-    }
-}
-
-function handleAppendMessage(content) {
-    messageList.value[messageList.value.length-1].content += content
-}
-
-function handleChangeChatID(chatID) {
-    currentChatID.value = chatID
-}
-
-function handleClearMessages() {
-    messageList.value = []
-}
-
-function logout() {
-    ifLogin.value = false
-
-    // 清空聊天框
-    currentChatID.value = -1
-    messageList.value = []
-}
-</script>
-
 <template>
     <!-- 顶栏 -->
     <el-container>
-        <el-header style="padding:0">
+        <el-header class="app-header" style="padding:0">
             <div style="background-color: #f7f8fc;text-align: center; ">
                 <chatHead @login-success="handleLoginSuccess" @user-logout="logout"
                         :ifLogin="ifLogin"/>
@@ -115,6 +47,7 @@ function logout() {
                         :systemInfo="systemInfo"    
                         :messageList="messageList"   
                         :ifLogin="ifLogin"  
+                        :user="user"
                         @add-message="handleAddMessage"   
                         @append-message="handleAppendMessage"   
                         @change-chat-id="handleChangeChatID"   
@@ -124,6 +57,78 @@ function logout() {
         </el-container>
     </el-container>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+import chatInfo from './components/chatComponents/chatInfo.vue'
+import chatHead from './components/chatComponents/chatHead.vue'
+import chatList from './components/chatComponents/chatList.vue';
+import sendComponent from './components/chatComponents/sendComponent.vue';
+const ifLogin = ref(false)
+const currentChatID = ref(-1)
+const systemInfo = ref('')
+const messageList = ref([])
+const user = ref({})
+
+
+
+// 搜索框内容
+const searchInfo = ref([])
+function handleLoginSuccess(res) {
+    ifLogin.value = true
+    user.value = res.value
+}
+
+function handleReadChat(chatID) {
+    currentChatID.value = chatID
+}
+
+function handleSystemInfo(info, messages) {
+    systemInfo.value = info
+    messageList.value = messages
+}
+
+function resetPage() {
+    systemInfo.value = user.value.defaultPrompt
+    currentChatID.value = -1
+    messageList.value = []
+}
+
+function handleAddMessage(type, content) {
+    if(type === 'human'){
+        messageList.value.push({
+            type: 'human',
+            content: content
+        })
+    }else{
+        messageList.value.push({
+            type: 'ai',
+            content: content
+        })
+    }
+}
+
+function handleAppendMessage(content) {
+    messageList.value[messageList.value.length-1].content += content
+}
+
+function handleChangeChatID(chatID) {
+    currentChatID.value = chatID
+}
+
+function handleClearMessages() {
+    messageList.value = []
+}
+
+function logout() {
+    ifLogin.value = false
+
+    // 清空聊天框
+    currentChatID.value = -1
+    messageList.value = []
+}
+</script>
+
 
 <style scoped>
 .info-area {
@@ -136,7 +141,7 @@ function logout() {
 .input-area {
     margin-left: 160px;
     margin-right: 160px;
-    padding-top: 30px;
+    padding-top: 2px;
     height:28%;
 
     display: flex;

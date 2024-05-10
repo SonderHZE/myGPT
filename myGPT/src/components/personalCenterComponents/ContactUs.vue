@@ -1,16 +1,13 @@
 <template>
     <div class="contact-us">
-      <h2 class="section-title">联系我们</h2>
-      <p>地址: 虚拟大道123号，未来科技城</p>
-      <p>电话: +86-123-4567-890</p>
-      <p>Email: support@example.com</p>
-      <p>工作时间: 周一至周五 9:00-18:00</p>
+      <h2 class="section-title">联系我</h2>
+      <p>地址: 华南理工大学大学城校区</p>
+      <p>电话: +86-186-7520-6891</p>
+      <p>Email: 840417918@qq.com</p>
+      <p>工作时间:没有</p>
     </div>
   </template>
   
-  <script setup>
-  // 此组件无需额外的脚本，因为内容是静态的
-  </script>
   
   <style scoped>
   .contact-us {

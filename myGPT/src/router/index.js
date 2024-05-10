@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import App from '../App.vue'
 import Chat from '../Chat.vue'
 import User from '../User.vue'
+import Tools from '../Tools.vue'
 
 
 const routes = [
@@ -16,9 +17,14 @@ const routes = [
     component: Chat
   },
   {
-    path: '/user',
+    path: '/user/:id',
     name: 'user',
     component: User
+  },
+  {
+    path: '/tools',
+    name: 'tools',
+    component: Tools
   }
 ]
 
@@ -29,10 +35,5 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
-  console.log('to:', to)
-  console.log('from:', from)
-  next()
-})
 
 export default router
