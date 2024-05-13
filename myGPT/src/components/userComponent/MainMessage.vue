@@ -1,9 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { ElIcon } from 'element-plus'
 import { message } from 'ant-design-vue';
 import axios from 'axios'
-import { nextTick } from 'vue';
+import { marked } from '/node_modules/.vite/deps/marked.js?v=fc896a47';
 
 const emit = defineEmits(['send-message', 'change-sessionID'])
 
@@ -15,6 +15,10 @@ const inputValue = ref('')
 const result = ref('')
 const combinedArray = ref([])
 const scrollbar = ref(null)
+const forbidInput = ref(false)
+const temperature = ref(0.5)
+const top_p = ref(0.5)
+const system = ref('你是一个学识渊博的大师')
 watch(() => props.ifChat, (newVal, oldVal) => {
     localIfChat.value = newVal
     // 如果是变成false，则清空聊天记录
@@ -25,22 +29,18 @@ watch(() => props.ifChat, (newVal, oldVal) => {
 
 watch(() => props.chatID, (newVal, oldVal) => {
     // 如果新旧值相等，则不做任何操作，===比较的是引用地址，==
-    if (newVal == oldVal||newVal===oldVal) {
+    if (newVal == oldVal || newVal === oldVal) {
         return
     }
 
     // 如果chatID的值和newVal一致
-    if(chatID.value == newVal){
+    if (chatID.value == newVal) {
         return
     }
 
 
     chatID.value = newVal
 
-
-    // 输出新旧值
-    console.log('newVal:', newVal)
-    console.log('oldVal:', oldVal)
     // 发起请求，获取sessionInfo
     if (newVal > 0) {
         axios.get('http://127.0.0.1:8080/getChatInfo?chatID=' + newVal, {
@@ -52,15 +52,25 @@ watch(() => props.chatID, (newVal, oldVal) => {
                 combinedArray.value = []
 
                 let messageList = res.data.data
-                // 将messageList中的数据按照user分割
+                // system:你是赵今麦\nuser: 你是谁\nassistant: 我是赵今麦，中国内地青年女演员，出生于2001年，因出演《小别离》中的朵朵一角崭露头角。我参演过多部影视作品，致力于表演艺术。如果你有关于我的作品、演艺经历或者合作项目的问题，我会尽力回答。\n
+                // 找到第一个user:的下标
+                let userIndex = messageList.indexOf('user:')
+                // 将下标之间的字符串截取出来
+                let systemInfo = messageList.substring(0, userIndex)
+                // 去掉system:和\n
+                system.value = systemInfo.substring(7, systemInfo.length - 1)
+
+
+               
+                //1. 先将messageList按照user分割
                 let splitArray = messageList.split('user: ')
-                // 遍历splitArray，将每一项按照assistant分割
+                //2. 遍历splitArray，将每一项按照assistant分割  
                 splitArray.forEach((item, index) => {
                     if (index === 0) {
                         return
                     }
                     let tempArray = item.split('assistant: ')
-                    // 将每一项的assistant部分插入到combinedArray中
+                    //3. 将每一项的assistant部分插入到combinedArray中
                     combinedArray.value.push({
                         type: 'human',
                         content: tempArray[0]
@@ -70,15 +80,6 @@ watch(() => props.chatID, (newVal, oldVal) => {
                         content: tempArray[1]
                     })
                 })
-
-
-                //  // 判断localStrorage中是否有chatID的值，如果没有，则以当前chatID为键,res.data.data为值存入localStorage
-                // if (!localStorage.getItem(chatID.value)) {
-                //     localStorage.setItem(chatID.value, res.data.data)
-                // }else{
-                //     localStorage.setItem(chatID.value, localStorage.getItem(chatID.value) + res.data.data)
-                // }
-
 
             } else {
                 message.error('获取聊天记录失败')
@@ -129,7 +130,7 @@ function clearInput() {
     inputValue.value = ''
 }
 
-// 要根据选择的模型来发送请求，这里暂时只有通义千问
+// 要根据选择的模型来发送请求
 function sendMessage() {
     if (props.isLogin === false) {
         message.error('请先登录')
@@ -151,17 +152,26 @@ function sendMessage() {
     })
     // 发送信号给父组件提示已经发送消息
     emit('send-message', inputValue.value, chatID.value)
-    aliChat()
+
+    aiChat()
     clearInput()
 }
 
-function aliChat() {
+function aiChat() {
+    // 禁止输入框输入
+    forbidInput.value = true
+    console.log('forbidInput:', forbidInput.value)
+
     const sessionID = props.chatID
 
     // 携带cookie发送请求
-    const source = new EventSource("http://127.0.0.1:8080/aliChat?inputValue=" + inputValue.value +
+    const source = new EventSource("http://127.0.0.1:8080/aiChat?inputValue=" + inputValue.value +
         "&chatID=" + chatID.value +
-        "&chatModel=" + "通义千问", {
+        "&chatModel=" + chatModel.value + 
+        "&temperature=" + temperature.value +
+        "&top_p=" + top_p.value +
+        "&system=" + system.value
+        , {
         withCredentials: true
     })
 
@@ -171,6 +181,7 @@ function aliChat() {
         if (ifClose) {
             chatID.value = event.data
             emit('change-sessionID', event.data)
+            forbidInput.value = false
             source.close()
             return
         }
@@ -194,20 +205,18 @@ function aliChat() {
                 }
             });
         }
-
-        // // 判断localStrorage中是否有chatID的值，如果没有，则以当前chatID为键,event.data为值存入localStorage
-        // if (!localStorage.getItem(chatID.value)) {
-        //     localStorage.setItem(chatID.value, event.data)
-        // }else{
-        //     localStorage.setItem(chatID.value, localStorage.getItem(chatID.value) + event.data)
-        // }
-
-
     }
     source.onerror = function (event) {
         console.log(event)
         message.error('请求失败')
+        //终止请求
+        source.close()
+        forbidInput.value = false
     }
+}
+
+function markdownToHtml(content) {
+    return marked(content)
 }
 </script>
 
@@ -269,7 +278,7 @@ function aliChat() {
                                     <User />
                                 </el-icon>
                                 <span style="color:rgb(31, 35, 40);font-size:16px;">
-                                    <div style="white-space: pre-line;">{{ item.content }}</div>
+                                    {{ item.content }}
                                 </span>
                             </div>
                         </div>
@@ -282,7 +291,8 @@ function aliChat() {
                                 </el-icon>
                                 <el-card style="border-radius: 14px;">
                                     <p style="color:rgb(31, 35, 40);font-size:16px;">
-                                    <div style="white-space: pre-line;">{{ item.content }}</div>
+                                        <!-- 将\n替换为<br> -->
+                                        <span v-html="markdownToHtml(item.content.replace(/\\n/g, '<br>'))"></span>
                                     </p>
                                 </el-card>
                             </div>
@@ -291,23 +301,66 @@ function aliChat() {
                 </el-scrollbar>
             </div>
         </div>
-        <!-- 模型选择，通义千问或者文心一言 -->
-        <el-select v-model="chatModel" placeholder="请选择模型" style="width: 120px;">
-            <el-option label="通义千问" value="通义千问"></el-option>
-            <el-option label="文心一言" value="文心一言"></el-option>
-        </el-select>
+
+        <div class="setting-area" style="margin-left: 166px;display:flex">
+            <!-- 模型选择，通义千问或者文心一言 -->
+            <el-select v-model="chatModel" placeholder="请选择模型" style="width: 120px">
+                <el-option label="通义千问" value="通义千问"></el-option>
+                <el-option label="文心一言" value="文心一言"></el-option>
+            </el-select>
+
+            <!-- tempeture -->
+            <el-input-number v-model="temperature" controls-position="right" :min="0.001" :max="0.999" :step="0.1"
+                style="margin-left: 20px;width: 120px" placeholder="tempeture" size="small" title="较高的数值会使输出更加随机，而较低的数值会使其更加集中和确定">
+            </el-input-number>
+
+            <!-- top_p -->
+            <el-input-number v-model="top_p" controls-position="right" :min="0.001" :max="0.999" :step="0.1"
+                style="margin-left: 20px;width: 120px" placeholder="top_p" size="small" title="影响输出文本的多样性，取值越大，生成文本的多样性越强">
+            </el-input-number>
+
+            <!-- system设置 -->
+            <el-input v-model="system" placeholder="请输入系统设置" style="margin-left: 20px;width: 325px" size="small" 
+                                        :disabled="props.chatID > 0"
+                title="模型人设，主要用于人设设定，例如，你是xxx公司制作的AI助手" />
+        </div>
+
 
         <div class="chat-area">
             <el-input v-model="inputValue" type="textarea" placeholder="请输入内容" size="large" maxlength="1500"
-                resize="none" show-word-limit :rows="4" @clear="clearInput" @keydown.enter.prevent="sendMessage"
-                style="width: 65%;height:80px;">
+                :disabled="forbidInput" resize="none" show-word-limit :rows="4" @clear="clearInput"
+                @keydown.enter.prevent="sendMessage" style="width: 65%;height:80px;">
             </el-input>
+            <el-button type="primary" size="large" @click="sendMessage" style="margin-top: 52px;">发送</el-button>
         </div>
     </div>
+
 
 </template>
 
 <style scoped>
+.cursor {
+    display: inline-block;
+    width: 1px;
+    height: 1em;
+    background-color: black;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
 .main {
     background-color: rgb(247, 248, 252);
     height: calc(100vh - 100px);
